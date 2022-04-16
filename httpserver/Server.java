@@ -54,6 +54,11 @@ class Server {
                         }                      
 			
 			HttpRequest httpRequest = new HttpRequest(builder.toString());
+			System.out.println(httpRequest.getHttpMethod());
+			System.out.println(httpRequest.getUrl());
+			System.out.println(httpRequest.getHeaders());
+			System.out.println(httpRequest.getBody());
+
 			HttpResponse httpResponse = new HttpResponse();
 
 			String body = this.handler.handle(httpRequest, httpResponse);
