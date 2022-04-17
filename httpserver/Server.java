@@ -11,12 +11,6 @@ class Server {
 	private static final int BUFFER_SIZE = 128;
 	public AsynchronousServerSocketChannel socket;
 
-	public static String HEADERS = "HTTP/1.1 200 OK\n" +
-				 	"Server: denis\n" +
-					"Connection: close\n" +
-					"Content-Type: text/html\n" +
-					"Content-Length: %s\n\n";
-
 	private final HttpHandler handler;
 
 	public Server(HttpHandler handler) {
@@ -54,19 +48,34 @@ class Server {
                         }                      
 			
 			HttpRequest httpRequest = new HttpRequest(builder.toString());
-			System.out.println(httpRequest.getHttpMethod());
-			System.out.println(httpRequest.getUrl());
-			System.out.println(httpRequest.getHeaders());
-			System.out.println(httpRequest.getBody());
 
 			HttpResponse httpResponse = new HttpResponse();
 
-			String body = this.handler.handle(httpRequest, httpResponse);
-			
-                        String headers = String.format(HEADERS, body.length());
-                        String resp = headers + body;
-                        
-                        channel.write(ByteBuffer.wrap(resp.getBytes()));
+
+			if(this.handler != null) {
+				try {
+					String body = this.handler.handle(httpRequest, httpResponse);
+					if(body != null && !body.isEmpty()) {
+						if(httpResponse.getHeader("Content-Length") == null) {
+							httpResponse.addHeader("Content-Type", "text/html; charset=utf-8");
+						}
+						httpResponse.setBody(body);
+					} 
+				} catch(Exception e) {
+					e.printStackTrace();
+					httpResponse.setStatusCode(500);
+					httpResponse.setStatus("Internal Server Error");
+					httpResponse.addHeader("Content-Type", "text/html; charset=utf-8");
+					httpResponse.setBody("<html><head><title>Error</title></head><body><h2>Internal Server Error</h2></body></html>");
+				}
+			} else {
+				httpResponse.setStatusCode(404);
+				httpResponse.setStatus("Not Found");
+				httpResponse.addHeader("Content-Type", "text/html; charset=utf-8");
+				httpResponse.setBody("<html><head><title>Not Found</title></head><body><h2>NOT FOUND</h2></body></html>");
+			}
+
+                        channel.write(ByteBuffer.wrap(httpResponse.getBytes()));
                         channel.close();
 		}
 	}
